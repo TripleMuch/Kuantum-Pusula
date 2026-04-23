@@ -85,7 +85,15 @@
             border-radius: 50%;
             border: 4px solid #555;
             box-shadow: 0 0 20px rgba(77, 166, 255, 0.3);
+            transition: all 0.3s ease;
         }
+
+        /* Navigasyon kör olduğunda uygulanacak kırmızı alarm stili */
+        .canvas-danger {
+            border-color: #e74c3c !important;
+            box-shadow: 0 0 35px rgba(231, 76, 60, 0.9) !important;
+        }
+
         .bar-container {
             width: 100%;
             background-color: #111;
@@ -120,15 +128,15 @@
                 <span class="value-display" id="angleVal">0°</span>
             </label>
             <input type="range" id="angleSlider" min="0" max="180" value="0">
-            <p style="font-size: 12px; color: #aaa;">0° ve 180° çizgilerle paralel, 90° ise dik konumu temsil eder. Kuş kafasını çevirdikçe bu açı değişir.</p>
+            <p style="font-size: 12px; color: #aaa;">Kuş kafasını çevirdikçe manyetik alanın retinaya düşme açısı değişir (0°=Paralel, 90°=Dik).</p>
         </div>
 
         <div class="slider-group">
-            <label>Antropojenik RF Kirliliği (Elektromanyetik Sis) 
+            <label>RF Kirliliği (Antropojenik Elektromanyetik Sis) 
                 <span class="value-display" id="noiseVal">0%</span>
             </label>
             <input type="range" id="noiseSlider" min="0" max="100" value="0">
-            <p style="font-size: 12px; color: #aaa;">Şehir merkezleri, baz istasyonları ve yüksek gerilim hatlarının yarattığı geniş bantlı gürültü.</p>
+            <p style="font-size: 12px; color: #aaa;">Yüksek gürültü kuantum spin durumlarını rastgeleleştirerek "navigasyon körlüğü" yaratır.</p>
         </div>
 
         <div class="slider-group">
@@ -150,7 +158,7 @@
         <h3 style="margin-top: 0; color: #ccc;">Kuşun Görsel Algısı (Retina)</h3>
         <canvas id="visionCanvas" width="300" height="300"></canvas>
         <p style="text-align: center; font-size: 13px; color: #888; margin-top: 15px;">
-            Kriptokrom proteinleri manyetik alanı ışık/gölge desenleri olarak algılar. RF kirliliği bu deseni bozarak kuantum durumlarını rastgeleleştirir.
+            Mavi ışıkla uyarılan kriptokromlar, manyetik alanı retinada görsel bir desen olarak işler.
         </p>
     </div>
 </div>
@@ -160,6 +168,7 @@
     const noiseSlider = document.getElementById('noiseSlider');
     const canvas = document.getElementById('visionCanvas');
     const ctx = canvas.getContext('2d');
+    const statusBox = document.getElementById('statusBox');
 
     function drawSimulation() {
         const angle = parseInt(angleSlider.value);
@@ -168,11 +177,10 @@
         document.getElementById('angleVal').innerText = angle + '°';
         document.getElementById('noiseVal').innerText = (noiseLevel * 100).toFixed(0) + '%';
 
-        // 1. Kuantum Matematiği: Singlet ve Triplet Verimi (Açıya bağlı Cosinus karesi ilişkisi)
+        // 1. Kuantum Matematiği
         const rad = angle * Math.PI / 180;
         let idealSinglet = Math.cos(rad) * Math.cos(rad); 
         
-        // RF Kirliliği kuantum durumlarını bozar ve dengeye (0.5) zorlar.
         let actualSinglet = idealSinglet * (1 - noiseLevel) + 0.5 * noiseLevel;
         let actualTriplet = 1 - actualSinglet;
 
@@ -182,39 +190,40 @@
         document.getElementById('singletText').innerText = (actualSinglet * 100).toFixed(1) + '%';
         document.getElementById('tripletText').innerText = (actualTriplet * 100).toFixed(1) + '%';
 
-        // Durum Kutusu Güncelle
-        const statusBox = document.getElementById('statusBox');
+        // Durum Kutusu ve Canvas Alarm Güncelleme
         if (noiseLevel > 0.6) {
             statusBox.className = 'status-box status-danger';
             statusBox.innerHTML = 'Navigasyon: KÖR (Elektromanyetik Sis)';
+            canvas.classList.add('canvas-danger'); // Kırmızı Çerçeve Alarmı
         } else if (noiseLevel > 0.3) {
             statusBox.className = 'status-box';
             statusBox.style.backgroundColor = 'rgba(241, 196, 15, 0.2)';
             statusBox.style.color = '#f1c40f';
             statusBox.style.border = '1px solid #f1c40f';
             statusBox.innerHTML = 'Navigasyon: ZAYIF (Sinyal Karışıyor)';
+            canvas.classList.remove('canvas-danger');
         } else {
             statusBox.className = 'status-box status-active';
             statusBox.style = '';
             statusBox.innerHTML = 'Navigasyon: AKTİF (Yön Bulunuyor)';
+            canvas.classList.remove('canvas-danger');
         }
 
-        // 2. Görsel Algı (Canvas) Çizimi
+        // 2. Görsel Algı (Retina) Çizimi
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Arka plan ışığı (Kriptokrom mavi ışığa duyarlıdır)
+        // Arka plan ışığı
         ctx.fillStyle = "#0a192f";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Manyetik alan deseni çizimi
+        // Manyetik alan deseni
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate(rad);
         
-        // Desen şiddeti Singlet/Triplet oranına ve gürültüye bağlıdır
         const intensity = 1 - noiseLevel;
         const gradient = ctx.createLinearGradient(-150, 0, 150, 0);
-        gradient.addColorStop(0, `rgba(52, 152, 219, ${intensity * 0.8})`); // Mavi
+        gradient.addColorStop(0, `rgba(52, 152, 219, ${intensity * 0.8})`); 
         gradient.addColorStop(0.5, `rgba(255, 255, 255, ${intensity * 0.1})`);
         gradient.addColorStop(1, `rgba(52, 152, 219, ${intensity * 0.8})`);
         
@@ -222,28 +231,35 @@
         ctx.fillRect(-150, -150, 300, 300);
         ctx.restore();
 
-        // RF Gürültüsü Efekti (Statik Kirlilik)
+        // RF Gürültüsü Efekti (Karıncalanma)
         if (noiseLevel > 0) {
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
                 if (Math.random() < noiseLevel) {
                     const noiseColor = Math.random() * 255;
-                    data[i] = data[i] * (1 - noiseLevel) + noiseColor * noiseLevel;     // R
-                    data[i+1] = data[i+1] * (1 - noiseLevel) + noiseColor * noiseLevel; // G
-                    data[i+2] = data[i+2] * (1 - noiseLevel) + noiseColor * noiseLevel; // B
+                    
+                    if (noiseLevel > 0.6) {
+                        // KÖR DURUMU: Kırmızımsı Parazit (Alarm Etkisi)
+                        data[i] = noiseColor; // Kırmızı Kanal
+                        data[i+1] = data[i+1] * 0.1; // Yeşil Kanalı Kıs
+                        data[i+2] = data[i+2] * 0.1; // Mavi Kanalı Kıs
+                    } else {
+                        // NORMAL/ZAYIF DURUMU: Standart Gri Parazit
+                        data[i] = data[i] * (1 - noiseLevel) + noiseColor * noiseLevel;
+                        data[i+1] = data[i+1] * (1 - noiseLevel) + noiseColor * noiseLevel;
+                        data[i+2] = data[i+2] * (1 - noiseLevel) + noiseColor * noiseLevel;
+                    }
                 }
             }
             ctx.putImageData(imgData, 0, 0);
         }
     }
 
-    // Olay Dinleyicileri
     angleSlider.addEventListener('input', drawSimulation);
     noiseSlider.addEventListener('input', drawSimulation);
 
-    // İlk çizimi başlat
-    drawSimulation();
+    drawSimulation(); // Sayfa açıldığında başlat
 </script>
 
 </body>
